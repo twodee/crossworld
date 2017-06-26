@@ -42,12 +42,14 @@ public class AmpersandController : PlayerController {
     // Only update pointer if we're not currently sending out a feeler ray.
     if (IsPointerAttached()) {
       Vector2 diff = targetPosition - (Vector2) transform.position;
+      float magnitude = diff.magnitude;
       diff.Normalize();
-      RaycastHit2D hit = Physics2D.Raycast(transform.position, diff, Mathf.Infinity, Utilities.GROUND_MASK);
+      RaycastHit2D hit = Physics2D.Raycast(transform.position, diff, magnitude, Utilities.GROUND_MASK);
 
       // If our ray hits a different object than it did before, that means some
       // other object got in the way.
-      if (hit.collider.gameObject != targetCell.gameObject) {
+      if (hit && hit.collider.gameObject != targetCell.gameObject) {
+        Debug.Log("hit.collider.gameObject: " + hit.collider.gameObject);
         Depoint();  
       } else {
         Vector2 perp = new Vector3(-diff.y, diff.x);
@@ -99,7 +101,7 @@ public class AmpersandController : PlayerController {
     while (elapsedTime < targetTime && !isHit) {
       float proportion = elapsedTime / targetTime;
       float length = proportion * maximumLength;
-      hit = Physics2D.Raycast(from, diff, length, Utilities.GROUND_MASK);
+      hit = Physics2D.Raycast(from, diff, length, Utilities.CLUE0_MASK);
       if (hit.collider != null) {
         PointAt(hit.point); 
         targetCell = hit.collider.gameObject.GetComponent<CellController>();
@@ -153,5 +155,19 @@ public class AmpersandController : PlayerController {
 
     star.Acquire(targetCell.Label);
     Destroy(payload);
+  }
+
+  void OnTriggerEnter2D(Collider2D collider) {
+    if (collider.gameObject.layer == Utilities.CLUE0_LAYER) {
+      collider.gameObject.layer = Utilities.CLUE_PAUSED_LAYER;
+    }
+  }
+
+  override public void OnTriggerExit2D(Collider2D collider) {
+    if (collider.gameObject.layer == Utilities.CLUE_PAUSED_LAYER) {
+      collider.gameObject.layer = Utilities.CLUE0_LAYER;
+    } else {
+      base.OnTriggerExit2D(collider);
+    }
   }
 }

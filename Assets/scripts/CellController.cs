@@ -5,7 +5,7 @@ using System.Collections;
 public class CellController : MonoBehaviour {
   private Text label;
 
-  void Start() {
+  void Awake() {
     label = transform.Find("canvas/text").GetComponent<Text>();
   }
 

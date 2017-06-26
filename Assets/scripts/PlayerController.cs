@@ -6,7 +6,6 @@ public abstract class PlayerController : MonoBehaviour {
   public float speed;
 
   private FootController foot;
-  public bool isAirborne;
   private new Rigidbody2D rigidbody;
   private GameObject otherPlayer;
   private bool isBurden;
@@ -17,7 +16,6 @@ public abstract class PlayerController : MonoBehaviour {
   virtual public void Start() {
     rigidbody = GetComponent<Rigidbody2D>();
     foot = transform.Find("foot").GetComponent<FootController>();
-    isAirborne = true;
     otherPlayer = null;
     isLocked = false;
   }
@@ -28,13 +26,14 @@ public abstract class PlayerController : MonoBehaviour {
     }
 
     oomph = Input.GetAxis("Horizontal" + type);
-    if (Input.GetButton("Jump" + type) && !isAirborne) {
+
+    bool isGrounded = IsGrounded();
+    if (Input.GetButton("Jump" + type) && isGrounded) {
       rigidbody.mass = 1;
-      rigidbody.AddForce(Vector2.up * 300);
-      isAirborne = true;
+      rigidbody.velocity = new Vector2(rigidbody.velocity.x, 6);
     }
 
-    if (!isAirborne && Input.GetButtonDown("Transmit" + type)) {
+    if (isGrounded && Input.GetButtonDown("Transmit" + type)) {
       isLocked = true;
       StartCoroutine(TransmitAndUnlock());
     }
@@ -90,15 +89,11 @@ public abstract class PlayerController : MonoBehaviour {
   abstract public bool IsTransmittable();
 
   bool IsGrounded() {
-    Collider2D hit = Physics2D.OverlapBox(foot.position, new Vector2(foot.width, foot.height), 0, Utilities.GROUND_MASK | otherMask);
+    Collider2D hit = Physics2D.OverlapBox(foot.position, new Vector2(foot.width, foot.height) * 0.5f, 0, Utilities.GROUND_MASK | otherMask);
     return hit != null;
   }
 
   void OnCollisionEnter2D(Collision2D collision) {
-    // If the player's foot touches the ground, we want to be able to jump
-    // again.
-    isAirborne = !IsGrounded();
-
     // If we land on top of the other people, let's reduce our mass to 0 so we
     // don't impede that player's jump.
     if ((1 << collision.gameObject.layer) == otherMask) {
@@ -115,6 +110,12 @@ public abstract class PlayerController : MonoBehaviour {
       otherPlayer = null;
       rigidbody.mass = 1;
       isBurden = false;
+    }
+  }
+
+  virtual public void OnTriggerExit2D(Collider2D collider) {
+    if (collider.gameObject.CompareTag("topEdge")) {
+      GameController.SINGLETON.Through();
     }
   }
 
