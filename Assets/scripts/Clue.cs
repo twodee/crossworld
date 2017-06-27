@@ -8,4 +8,10 @@ public class Clue {
   public int y;
   public string orientation; 
   public string text;
+
+  public bool IsVertical {
+    get {
+      return orientation == "|";
+    }
+  }
 }

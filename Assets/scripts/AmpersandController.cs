@@ -15,6 +15,7 @@ public class AmpersandController : PlayerController {
   override public void Start() {
     base.Start();
     this.Type = "R";
+    base.declaration = "char *p;";
     lineRenderer = GetComponent<LineRenderer>();
     leftBarbRenderer = transform.Find("leftbarb").GetComponent<LineRenderer>();
     rightBarbRenderer = transform.Find("rightbarb").GetComponent<LineRenderer>();
@@ -31,7 +32,13 @@ public class AmpersandController : PlayerController {
       if (caster != null) {
         StopCoroutine(caster);
       }
-      caster = StartCoroutine(CastPointer()); 
+      caster = StartCoroutine(CastPointerToMouse()); 
+    } else if (Input.GetKeyDown(KeyCode.Equals)) {
+      caster = StartCoroutine(CastPointer(targetPosition, targetPosition + new Vector2(1 + GameController.GAP, 0), targetCell.gameObject));
+      GameController.SINGLETON.Log("++p;");
+    } else if (Input.GetKeyDown(KeyCode.Minus)) {
+      caster = StartCoroutine(CastPointer(targetPosition, targetPosition - new Vector2(1 + GameController.GAP, 0), targetCell.gameObject));
+      GameController.SINGLETON.Log("--p;");
     }
 
     // Cancel pointer on right-click.
@@ -41,6 +48,7 @@ public class AmpersandController : PlayerController {
 
     // Only update pointer if we're not currently sending out a feeler ray.
     if (IsPointerAttached()) {
+      Debug.Log("updating pointer");
       Vector2 diff = targetPosition - (Vector2) transform.position;
       float magnitude = diff.magnitude;
       diff.Normalize();
@@ -49,7 +57,6 @@ public class AmpersandController : PlayerController {
       // If our ray hits a different object than it did before, that means some
       // other object got in the way.
       if (hit && hit.collider.gameObject != targetCell.gameObject) {
-        Debug.Log("hit.collider.gameObject: " + hit.collider.gameObject);
         Depoint();  
       } else {
         Vector2 perp = new Vector3(-diff.y, diff.x);
@@ -65,6 +72,7 @@ public class AmpersandController : PlayerController {
     leftBarbRenderer.enabled = false;
     rightBarbRenderer.enabled = false;
     targetCell = null;
+    GameController.SINGLETON.Log("p = NULL;");
   }
 
   void PointAt(Vector2 position) {
@@ -79,14 +87,18 @@ public class AmpersandController : PlayerController {
     rightBarbRenderer.SetPosition(1, position); 
   }
 
-  IEnumerator CastPointer() {
+  IEnumerator CastPointerToMouse() {
+    Vector2 from = transform.position;
+    Vector3 mousePixels = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10);
+    Vector2 to = Camera.main.ScreenToWorldPoint(mousePixels);
+    yield return StartCoroutine(CastPointer(from, to));
+  }
+
+  IEnumerator CastPointer(Vector2 from, Vector2 to, GameObject skipObject = null) {
     lineRenderer.enabled = true;
     leftBarbRenderer.enabled = true;
     rightBarbRenderer.enabled = true;
 
-    Vector3 mousePixels = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10);
-    Vector2 to = Camera.main.ScreenToWorldPoint(mousePixels);
-    Vector2 from = transform.position;
     float maximumLength = Vector2.Distance(from, to);
     Vector2 diff = to - from;
     diff.Normalize();
@@ -95,23 +107,54 @@ public class AmpersandController : PlayerController {
     float elapsedTime = 0.0f;
     float targetTime = 0.5f;
     bool isHit = false;
+    CellController oldTargetCell = targetCell;
     targetCell = null;
+
+    int mask = Utilities.BLANK_HEAD_MASK | Utilities.GROUND_MASK;
+    /* if (skipObject != null) { */
+      /* Debug.Log("include tail"); */
+      /* mask |= Utilities.BLANK_TAIL_MASK; */
+    /* } */
 
     RaycastHit2D hit;
     while (elapsedTime < targetTime && !isHit) {
       float proportion = elapsedTime / targetTime;
       float length = proportion * maximumLength;
-      hit = Physics2D.Raycast(from, diff, length, Utilities.CLUE0_MASK);
-      if (hit.collider != null) {
-        PointAt(hit.point); 
-        targetCell = hit.collider.gameObject.GetComponent<CellController>();
-        targetPosition = hit.point;
-        isHit = true;
+
+      Vector2 rayStart = transform.position;
+      Vector2 rayStop = from + diff * length;
+      Vector2 rayDirection = rayStop - rayStart;
+      float rayLength = rayDirection.magnitude;
+      rayDirection.Normalize();
+
+      hit = Physics2D.Raycast(rayStart, rayDirection, rayLength, mask);
+      if (hit.collider != null && hit.collider.gameObject != skipObject) {
+        /* Debug.Log("hit.collider.gameObject: " + hit.collider.gameObject); */
+        if (hit.collider.gameObject.layer == Utilities.GROUND_LAYER) {
+          break;
+        } else {
+          PointAt(hit.point); 
+          targetCell = hit.collider.gameObject.GetComponent<CellController>();
+          targetPosition = hit.point;
+          GameController.SINGLETON.Log("p = &word[" + targetCell.Address + "];");
+          isHit = true;
+        }
       } else {
         PointAt(from + diff * length); 
       }
       yield return null;
       elapsedTime = Time.time - startTime;
+    }
+
+    if (skipObject != null) {
+      Debug.Log("targetCell.Column: " + oldTargetCell.Column);
+      Debug.Log("targetCell.Row: " + oldTargetCell.Row);
+      targetCell = GameController.SINGLETON.cells[oldTargetCell.Column + 1, oldTargetCell.Row];
+      targetPosition = to;
+    }
+
+    if (targetCell == null) {
+      GameController.SINGLETON.Log("p = NULL;");
     }
 
     lineRenderer.enabled = targetCell != null;
@@ -153,19 +196,21 @@ public class AmpersandController : PlayerController {
       elapsedTime = Time.time - startTime;
     }
 
+    GameController.SINGLETON.Log("value = *p; // value = '" + targetCell.Label + "'");
+
     star.Acquire(targetCell.Label);
     Destroy(payload);
   }
 
   void OnTriggerEnter2D(Collider2D collider) {
-    if (collider.gameObject.layer == Utilities.CLUE0_LAYER) {
-      collider.gameObject.layer = Utilities.CLUE_PAUSED_LAYER;
+    if (collider.gameObject.layer == Utilities.BLANK_HEAD_LAYER) {
+      collider.gameObject.layer = Utilities.BLANK_PAUSED_LAYER;
     }
   }
 
   override public void OnTriggerExit2D(Collider2D collider) {
-    if (collider.gameObject.layer == Utilities.CLUE_PAUSED_LAYER) {
-      collider.gameObject.layer = Utilities.CLUE0_LAYER;
+    if (collider.gameObject.layer == Utilities.BLANK_PAUSED_LAYER) {
+      collider.gameObject.layer = Utilities.BLANK_HEAD_LAYER;
     } else {
       base.OnTriggerExit2D(collider);
     }

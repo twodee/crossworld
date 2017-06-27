@@ -8,8 +8,10 @@ public class Utilities {
   public static int PLAYER_R_MASK = 1 << PLAYER_R_LAYER;
   public static int PLAYER_D_LAYER = LayerMask.NameToLayer("playerD");
   public static int PLAYER_D_MASK = 1 << PLAYER_D_LAYER;
-  public static int CLUE0_LAYER = LayerMask.NameToLayer("clue0");
-  public static int CLUE0_MASK = 1 << CLUE0_LAYER;
-  public static int CLUE_PAUSED_LAYER = LayerMask.NameToLayer("cluePaused");
-  public static int CLUE_PAUSED_MASK = 1 << CLUE_PAUSED_LAYER;
+  public static int BLANK_HEAD_LAYER = LayerMask.NameToLayer("blankHead");
+  public static int BLANK_HEAD_MASK = 1 << BLANK_HEAD_LAYER;
+  public static int BLANK_PAUSED_LAYER = LayerMask.NameToLayer("blankPaused");
+  public static int BLANK_PAUSED_MASK = 1 << BLANK_PAUSED_LAYER;
+  public static int BLANK_TAIL_LAYER = LayerMask.NameToLayer("blankTail");
+  public static int BLANK_TAIL_MASK = 1 << BLANK_TAIL_LAYER;
 }

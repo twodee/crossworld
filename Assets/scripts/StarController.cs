@@ -9,6 +9,7 @@ public class StarController : PlayerController {
   override public void Start() {
     base.Start();
     this.Type = "D";
+    base.declaration = "char value;";
     loot = transform.Find("canvas/loot").GetComponent<Text>();
     ampersand = GameObject.Find("/players/ampersand").GetComponent<AmpersandController>();
   }
@@ -42,6 +43,8 @@ public class StarController : PlayerController {
       yield return null;
       elapsedTime = Time.time - startTime;
     }
+
+    GameController.SINGLETON.Log("*p = value; // *p = '" + loot.text + "'");
 
     Destroy(payload);
     ampersand.Target.Label = loot.text;

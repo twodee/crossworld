@@ -9,6 +9,7 @@
   "clues" : [
     {"x" : 0, "y" : 0, "orientation" : "_", "text" : "semicircle"},
     {"x" : 0, "y" : 0, "orientation" : "|", "text" : "hangs on a wall"},
-    {"x" : 2, "y" : 0, "orientation" : "|", "text" : "pet with tail"}
+    {"x" : 2, "y" : 0, "orientation" : "|", "text" : "pet with tail"},
+    {"x" : 0, "y" : 2, "orientation" : "_", "text" : "small child"}
   ]
 }

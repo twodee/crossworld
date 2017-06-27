@@ -4,6 +4,7 @@ using UnityEngine;
 
 public abstract class PlayerController : MonoBehaviour {
   public float speed;
+  public string declaration;
 
   private FootController foot;
   private new Rigidbody2D rigidbody;
@@ -115,7 +116,7 @@ public abstract class PlayerController : MonoBehaviour {
 
   virtual public void OnTriggerExit2D(Collider2D collider) {
     if (collider.gameObject.CompareTag("topEdge")) {
-      GameController.SINGLETON.Through();
+      GameController.SINGLETON.Through(declaration);
     }
   }
 
