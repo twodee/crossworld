@@ -170,7 +170,7 @@ public class AmpersandController : PlayerController {
   }
 
   override public bool IsTransmittable() {
-    return IsPointerAttached();
+    return IsPointerAttached() && targetCell.Label != "";
   }
 
   override public IEnumerator Transmit() {
