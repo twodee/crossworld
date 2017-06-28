@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
 public class AmpersandController : PlayerController {
@@ -33,9 +34,15 @@ public class AmpersandController : PlayerController {
         StopCoroutine(caster);
       }
       caster = StartCoroutine(CastPointerToMouse()); 
+    } else if (Input.GetKeyDown(KeyCode.Equals) && Input.GetKey(KeyCode.LeftShift)) {
+      caster = StartCoroutine(CastPointer(targetPosition, targetPosition - new Vector2(0, 1 + GameController.GAP), targetCell.gameObject));
+      GameController.SINGLETON.Log("p += 3;");
     } else if (Input.GetKeyDown(KeyCode.Equals)) {
       caster = StartCoroutine(CastPointer(targetPosition, targetPosition + new Vector2(1 + GameController.GAP, 0), targetCell.gameObject));
       GameController.SINGLETON.Log("++p;");
+    } else if (Input.GetKeyDown(KeyCode.Minus) && Input.GetKey(KeyCode.LeftShift)) {
+      caster = StartCoroutine(CastPointer(targetPosition, targetPosition + new Vector2(0, 1 + GameController.GAP), targetCell.gameObject));
+      GameController.SINGLETON.Log("p -= 3;");
     } else if (Input.GetKeyDown(KeyCode.Minus)) {
       caster = StartCoroutine(CastPointer(targetPosition, targetPosition - new Vector2(1 + GameController.GAP, 0), targetCell.gameObject));
       GameController.SINGLETON.Log("--p;");
@@ -48,7 +55,6 @@ public class AmpersandController : PlayerController {
 
     // Only update pointer if we're not currently sending out a feeler ray.
     if (IsPointerAttached()) {
-      Debug.Log("updating pointer");
       Vector2 diff = targetPosition - (Vector2) transform.position;
       float magnitude = diff.magnitude;
       diff.Normalize();
@@ -106,39 +112,19 @@ public class AmpersandController : PlayerController {
     float startTime = Time.time;
     float elapsedTime = 0.0f;
     float targetTime = 0.5f;
-    bool isHit = false;
     CellController oldTargetCell = targetCell;
     targetCell = null;
+    Vector2 rayStart = transform.position;
 
-    int mask = Utilities.BLANK_HEAD_MASK | Utilities.GROUND_MASK;
-    /* if (skipObject != null) { */
-      /* Debug.Log("include tail"); */
-      /* mask |= Utilities.BLANK_TAIL_MASK; */
-    /* } */
-
-    RaycastHit2D hit;
-    while (elapsedTime < targetTime && !isHit) {
+    bool hitGround = false;
+    while (elapsedTime < targetTime && !hitGround) {
       float proportion = elapsedTime / targetTime;
       float length = proportion * maximumLength;
 
-      Vector2 rayStart = transform.position;
       Vector2 rayStop = from + diff * length;
-      Vector2 rayDirection = rayStop - rayStart;
-      float rayLength = rayDirection.magnitude;
-      rayDirection.Normalize();
-
-      hit = Physics2D.Raycast(rayStart, rayDirection, rayLength, mask);
-      if (hit.collider != null && hit.collider.gameObject != skipObject) {
-        /* Debug.Log("hit.collider.gameObject: " + hit.collider.gameObject); */
-        if (hit.collider.gameObject.layer == Utilities.GROUND_LAYER) {
-          break;
-        } else {
-          PointAt(hit.point); 
-          targetCell = hit.collider.gameObject.GetComponent<CellController>();
-          targetPosition = hit.point;
-          GameController.SINGLETON.Log("p = &word[" + targetCell.Address + "];");
-          isHit = true;
-        }
+      Collider2D collider = Physics2D.OverlapPoint(rayStop, Utilities.GROUND_MASK);
+      if (collider != null) {
+        hitGround = true;
       } else {
         PointAt(from + diff * length); 
       }
@@ -146,11 +132,21 @@ public class AmpersandController : PlayerController {
       elapsedTime = Time.time - startTime;
     }
 
-    if (skipObject != null) {
-      Debug.Log("targetCell.Column: " + oldTargetCell.Column);
-      Debug.Log("targetCell.Row: " + oldTargetCell.Row);
-      targetCell = GameController.SINGLETON.cells[oldTargetCell.Column + 1, oldTargetCell.Row];
-      targetPosition = to;
+    if (!hitGround) {
+      int mask = Utilities.BLANK_HEAD_MASK;
+      if (skipObject != null) {
+        mask |= Utilities.BLANK_TAIL_MASK;
+      }
+      Collider2D collider = Physics2D.OverlapPoint(to, Utilities.BLANK_HEAD_MASK | Utilities.BLANK_TAIL_MASK);
+
+      if (collider != null) {
+        PointAt(to); 
+        targetCell = collider.gameObject.GetComponent<CellController>();
+        targetPosition = to;
+        if (collider.gameObject.layer == Utilities.BLANK_HEAD_LAYER) {
+          GameController.SINGLETON.Log("p = &word[" + targetCell.Address + "];");
+        }
+      }
     }
 
     if (targetCell == null) {
@@ -180,11 +176,12 @@ public class AmpersandController : PlayerController {
   override public IEnumerator Transmit() {
     GameObject cell = targetCell.gameObject.transform.Find("canvas/text").gameObject;
     GameObject payload = Instantiate(cell);
+    payload.GetComponent<Text>().color = new Color(211, 214, 0);
     payload.transform.SetParent(targetCell.gameObject.transform.Find("canvas"));
     payload.transform.position = cell.transform.position;
 
     Vector2 startPosition = payload.transform.position;
-    Vector2 endPosition = star.gameObject.transform.position;
+    Vector2 endPosition = star.LootPosition; //gameObject.transform.position;
 
     float startTime = Time.time;
     float targetTime = 1.0f;

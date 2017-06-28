@@ -116,6 +116,13 @@ public class GameController : MonoBehaviour {
   public void Log(string message) {
     Text codeBox = GameObject.Find("canvas/codescroller/viewport/content/text").GetComponent<Text>();
     codeBox.text += "\n" + message;
+    StartCoroutine(ScrollToBottom());
+  }
+
+  IEnumerator ScrollToBottom() {
+    yield return new WaitForSeconds(0.2f);
+    ScrollRect scroller = GameObject.Find("canvas/codescroller").GetComponent<ScrollRect>();
+    scroller.verticalNormalizedPosition = 0.0f;
   }
 
   public void Through(string declaration) {
