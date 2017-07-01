@@ -12,22 +12,27 @@ public class GameController : MonoBehaviour {
   public StarController star;
   public Color letterInCellColor;
   public Color letterWithValueColor;
+  public Color transmittingStrokeColor;
+  public Color transmittingFillColor;
 
   public static GameController SINGLETON;
 
   public const float GAP = 0.02f;
   private const float DEPTH = 1.0f;
 
-  private GameObject codeScroller;
+  private Coroutine fader;
+  private Text codeBox;
+  /* private GameObject codeScroller; */
   private int nPlayersThrough;
   public CellController[,] cells;
 
   void Start() {
     nPlayersThrough = 0;
+    fader = null;
     SINGLETON = this;
 
     Transform boardParent = GameObject.Find("/board").transform;
-    codeScroller = GameObject.Find("/canvas/codescroller");
+    /* codeScroller = GameObject.Find("/canvas/codescroller"); */
 
     Board board = JsonUtility.FromJson<Board>(boardFile.text);
     List<string> horizontalClues = new List<string>();
@@ -46,10 +51,9 @@ public class GameController : MonoBehaviour {
           instance.name = "hole_" + c + "_" + r;
           instance.layer = Utilities.HOLE_LAYER;
         } else {
-          instance.name = "cell_" + c + "_" + r;
-        }
+          instance.transform.Find("canvas/text").GetComponent<Outline>().enabled = false;
 
-        if (board[c, r] != '.') {
+          instance.name = "cell_" + c + "_" + r;
           CellController cell = instance.GetComponent<CellController>();  
           cells[c, r] = cell;
           cell.Row = r;
@@ -96,7 +100,7 @@ public class GameController : MonoBehaviour {
         clueBox.text = "Clues:\n" + String.Join("\n", verticalClues.ToArray());
       }
 
-      Text codeBox = GameObject.Find("/canvas/codescroller/viewport/content/text").GetComponent<Text>();
+      codeBox = GameObject.Find("/canvas/codebox").GetComponent<Text>();
       codeBox.text = "";
     }
 
@@ -133,23 +137,49 @@ public class GameController : MonoBehaviour {
     transform.position = new Vector3(board.ColumnCount / 2, (board.RowCount + 1) / 2, transform.position.z);
   }
 
-  public void ToggleCodeScroller(bool b) {
-    codeScroller.SetActive(b);
-  }
+  /* public void ToggleCodeScroller(bool b) { */
+    /* codeScroller.SetActive(b); */
+  /* } */
 
   public void Log(string message) {
-    if (codeScroller.activeInHierarchy) {
-      Text codeBox = GameObject.Find("/canvas/codescroller/viewport/content/text").GetComponent<Text>();
-      codeBox.text += "\n" + message;
-      StartCoroutine(ScrollToBottom());
+    if (fader != null) {
+      StopCoroutine(fader);
     }
+    codeBox.text = message;
+    fader = StartCoroutine(FadeCode());
   }
 
-  IEnumerator ScrollToBottom() {
-    yield return new WaitForSeconds(0.2f);
-    ScrollRect scroller = GameObject.Find("/canvas/codescroller").GetComponent<ScrollRect>();
-    scroller.verticalNormalizedPosition = 0.0f;
+  IEnumerator FadeCode() {
+    codeBox.color = new Color(0, 1, 0, 0);
+    float startTime = Time.time;
+    float targetTime = 0.5f;
+    float elapsedTime = 0.0f;
+    while (elapsedTime < targetTime) {
+      float proportion = elapsedTime / targetTime;
+      codeBox.color = new Color(0, 1, 0, proportion);
+      yield return null;
+      elapsedTime = Time.time - startTime;
+    }
+    codeBox.color = new Color(0, 1, 0, 1);
+
+    yield return new WaitForSeconds(4.0f);
+    startTime = Time.time;
+    targetTime = 1.0f;
+    elapsedTime = 0.0f;
+    while (elapsedTime < targetTime) {
+      float proportion = elapsedTime / targetTime;
+      codeBox.color = new Color(0, 1, 0, 1 - proportion);
+      yield return null;
+      elapsedTime = Time.time - startTime;
+    }
+    codeBox.color = new Color(0, 1, 0, 0);
   }
+
+  /* IEnumerator ScrollToBottom() { */
+    /* yield return new WaitForSeconds(0.2f); */
+    /* ScrollRect scroller = GameObject.Find("/canvas/codescroller").GetComponent<ScrollRect>(); */
+    /* scroller.verticalNormalizedPosition = 0.0f; */
+  /* } */
 
   public void Through(string declaration) {
     Log(declaration);

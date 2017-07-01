@@ -26,6 +26,8 @@ public abstract class PlayerController : MonoBehaviour {
     }
 
     oomph = Input.GetAxis("Horizontal" + type);
+    if (gameObject.name == "ampersand") {
+    }
 
     bool isGrounded = IsGrounded();
     if (Input.GetButtonDown("Jump" + type) && isGrounded) {
@@ -43,8 +45,8 @@ public abstract class PlayerController : MonoBehaviour {
 
   IEnumerator TransmitAndUnlock() {
     bool wasBurden = isBurden;
-    rigidbody.isKinematic = true;
-    other.rigidbody.isKinematic = true;
+    rigidbody.velocity = Vector2.zero;
+    other.rigidbody.velocity = Vector2.zero;
 
     // Squat
     Vector2 startPosition = gameObject.transform.position;
@@ -81,17 +83,18 @@ public abstract class PlayerController : MonoBehaviour {
       yield return StartCoroutine(Transmit());
     }
 
-    rigidbody.isKinematic = false;
-    other.rigidbody.isKinematic = false;
     isBurden = wasBurden;
     isLocked = false;
   }
 
   void LateUpdate() {
-    if (isBurden) {
-      oomph += other.oomph;
+    if (!isLocked) {
+      if (isBurden) {
+        oomph += other.oomph;
+      }
+      rigidbody.velocity = new Vector2(oomph * speed, rigidbody.velocity.y);
+      oomph = 0.0f;
     }
-    rigidbody.velocity = new Vector2(oomph * speed, rigidbody.velocity.y);
   }
 
   abstract public IEnumerator Transmit();

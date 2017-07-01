@@ -15,7 +15,8 @@ public class StarController : PlayerController {
   }
 
   public void Acquire(string label) {
-    loot.GetComponent<Text>().color = GameController.SINGLETON.letterWithValueColor;
+    loot.GetComponent<Text>().color = GameController.SINGLETON.transmittingFillColor;
+    loot.GetComponent<Outline>().effectColor = GameController.SINGLETON.transmittingStrokeColor;
     loot.text = label;
   }
 
@@ -31,9 +32,12 @@ public class StarController : PlayerController {
     if (loot.text == "") {
       yield return null;
     } else {
-      Color startColor = GameController.SINGLETON.letterWithValueColor;
-      Color endColor = startColor;
-      endColor.a = 0.0f;
+      Color startFillColor = GameController.SINGLETON.transmittingFillColor;
+      Color endFillColor = startFillColor;
+      endFillColor.a = 0.0f;
+      Color startStrokeColor = GameController.SINGLETON.transmittingStrokeColor;
+      Color endStrokeColor = startStrokeColor;
+      endStrokeColor.a = 0.0f;
 
       float startTime = Time.time;
       float targetTime = 0.2f;
@@ -41,12 +45,14 @@ public class StarController : PlayerController {
 
       while (elapsedTime <= targetTime) {
         float proportion = elapsedTime / targetTime;
-        loot.GetComponent<Text>().color = Color.Lerp(startColor, endColor, proportion);
+        loot.GetComponent<Text>().color = Color.Lerp(startFillColor, endFillColor, proportion);
+        loot.GetComponent<Outline>().effectColor = Color.Lerp(startStrokeColor, endStrokeColor, proportion);
         yield return null;
         elapsedTime = Time.time - startTime;
       }
 
-      loot.GetComponent<Text>().color = endColor;
+      loot.GetComponent<Text>().color = endFillColor;
+      loot.GetComponent<Outline>().effectColor = endStrokeColor;
     }
   }
 
@@ -58,24 +64,30 @@ public class StarController : PlayerController {
 
     Vector2 startPosition = ampersand.gameObject.transform.position;
     Vector2 endPosition = ampersand.Target.gameObject.transform.position;
-    Color startColor = GameController.SINGLETON.letterWithValueColor;
-    Color endColor = GameController.SINGLETON.letterInCellColor;
+    Color startFillColor = GameController.SINGLETON.transmittingFillColor;
+    Color endFillColor = GameController.SINGLETON.letterInCellColor;
+    Color startStrokeColor = GameController.SINGLETON.transmittingStrokeColor;
+    Color endStrokeColor = startStrokeColor;
+    endStrokeColor.a = 0;
 
     float startTime = Time.time;
     float targetTime = 1.0f;
     float elapsedTime = 0.0f;
 
+    GameController.SINGLETON.Log("*p = value; // *p = '" + loot.text + "'");
+
     while (elapsedTime <= targetTime) {
       float proportion = elapsedTime / targetTime;
       payload.transform.position = Vector2.Lerp(startPosition, endPosition, proportion);
-      payloadText.color = Color.Lerp(startColor, endColor, proportion);
+      payloadText.color = Color.Lerp(startFillColor, endFillColor, proportion);
+      payload.GetComponent<Outline>().effectColor = Color.Lerp(startStrokeColor, endStrokeColor, proportion);
       yield return null;
       elapsedTime = Time.time - startTime;
     }
 
     payload.transform.position = endPosition;
-    payloadText.color = endColor;
-    GameController.SINGLETON.Log("*p = value; // *p = '" + loot.text + "'");
+    payloadText.color = endFillColor;
+    payload.GetComponent<Outline>().effectColor = endStrokeColor;
 
     Destroy(payload);
     ampersand.Target.Label = loot.text;

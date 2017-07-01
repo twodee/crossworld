@@ -184,24 +184,32 @@ public class AmpersandController : PlayerController {
 
     Vector2 startPosition = payload.transform.position;
     Vector2 endPosition = star.LootPosition;
-    Color startColor = GameController.SINGLETON.letterInCellColor;
-    Color endColor = GameController.SINGLETON.letterWithValueColor;
+    Color startFillColor = GameController.SINGLETON.letterInCellColor;
+    Color endFillColor = GameController.SINGLETON.transmittingFillColor;
+    Color startStrokeColor = GameController.SINGLETON.letterInCellColor;
+    Color endStrokeColor = GameController.SINGLETON.transmittingStrokeColor;
 
     float startTime = Time.time;
     float targetTime = 1.0f;
     float elapsedTime = 0.0f;
 
+    Outline outline = payload.GetComponent<Outline>();
+    outline.enabled = true;
+
+    GameController.SINGLETON.Log("value = *p; // value = '" + targetCell.Label + "'");
+
     while (elapsedTime <= targetTime) {
       float proportion = elapsedTime / targetTime;
       payload.transform.position = Vector2.Lerp(startPosition, endPosition, proportion);
-      payloadText.color = Color.Lerp(startColor, endColor, proportion);
+      payloadText.color = Color.Lerp(startFillColor, endFillColor, proportion);
+      outline.effectColor = Color.Lerp(startStrokeColor, endStrokeColor, proportion);
       yield return null;
       elapsedTime = Time.time - startTime;
     }
 
     payload.transform.position = endPosition;
-    payloadText.color = endColor;
-    GameController.SINGLETON.Log("value = *p; // value = '" + targetCell.Label + "'");
+    payloadText.color = endFillColor;
+    outline.effectColor = endStrokeColor;
 
     star.Acquire(targetCell.Label);
     Destroy(payload);
