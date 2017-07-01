@@ -31,6 +31,10 @@ public class CellController : MonoBehaviour {
     }
   }
 
+  void OnMouseDown() {
+    GameController.SINGLETON.ampersand.OnClick();
+  }
+
   public string Label {
     get {
       return label.text;

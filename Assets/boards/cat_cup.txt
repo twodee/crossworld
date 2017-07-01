@@ -1,0 +1,11 @@
+{
+  "positionP" : {"x" : 0, "y" : 3},
+  "positionV" : {"x" : 2, "y" : 3},
+  "cells" : [
+    "cAT.CUP"
+  ],
+  "clues" : [
+    {"x" : 0, "y" : 0, "orientation" : "_", "text" : "Meower"},
+    {"x" : 4, "y" : 0, "orientation" : "_", "text" : "Beverage dish"}
+  ]
+}

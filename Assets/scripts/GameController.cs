@@ -10,12 +10,15 @@ public class GameController : MonoBehaviour {
   public GameObject hole;
   public AmpersandController ampersand;
   public StarController star;
+  public Color letterInCellColor;
+  public Color letterWithValueColor;
 
   public static GameController SINGLETON;
 
   public const float GAP = 0.02f;
   private const float DEPTH = 1.0f;
 
+  private GameObject codeScroller;
   private int nPlayersThrough;
   public CellController[,] cells;
 
@@ -24,6 +27,7 @@ public class GameController : MonoBehaviour {
     SINGLETON = this;
 
     Transform boardParent = GameObject.Find("/board").transform;
+    codeScroller = GameObject.Find("/canvas/codescroller");
 
     Board board = JsonUtility.FromJson<Board>(boardFile.text);
     List<string> horizontalClues = new List<string>();
@@ -37,7 +41,13 @@ public class GameController : MonoBehaviour {
         GameObject reference = board[c, r] == '.' ? hole : letter;
         GameObject instance = Instantiate(reference, new Vector3(c * (1 + GAP), (board.RowCount - r) * (1 + GAP), DEPTH), Quaternion.identity);
         instance.transform.SetParent(boardParent);
-        instance.name = "cell_" + c + "_" + r;
+
+        if (board[c, r] == '.') {
+          instance.name = "hole_" + c + "_" + r;
+          instance.layer = Utilities.HOLE_LAYER;
+        } else {
+          instance.name = "cell_" + c + "_" + r;
+        }
 
         if (board[c, r] != '.') {
           CellController cell = instance.GetComponent<CellController>();  
@@ -76,10 +86,17 @@ public class GameController : MonoBehaviour {
         }
       }
 
-      Text clueBox = GameObject.Find("canvas/cluescroller/viewport/content/text").GetComponent<Text>();
-      clueBox.text = "Horizontal\n" + String.Join("\n", horizontalClues.ToArray()) + "\n\n" + "Vertical\n" + String.Join("\n", verticalClues.ToArray());
+      Text clueBox = GameObject.Find("/canvas/cluescroller/viewport/content/text").GetComponent<Text>();
 
-      Text codeBox = GameObject.Find("canvas/codescroller/viewport/content/text").GetComponent<Text>();
+      if (horizontalClues.Count > 0 && verticalClues.Count > 0) {
+        clueBox.text = "Horizontal:\n" + String.Join("\n", horizontalClues.ToArray()) + "\n\n" + "Vertical:\n" + String.Join("\n", verticalClues.ToArray());
+      } else if (verticalClues.Count == 0) {
+        clueBox.text = "Clues:\n" + String.Join("\n", horizontalClues.ToArray());
+      } else {
+        clueBox.text = "Clues:\n" + String.Join("\n", verticalClues.ToArray());
+      }
+
+      Text codeBox = GameObject.Find("/canvas/codescroller/viewport/content/text").GetComponent<Text>();
       codeBox.text = "";
     }
 
@@ -107,21 +124,30 @@ public class GameController : MonoBehaviour {
     ampersand = GameObject.Find("/players/ampersand").GetComponent<AmpersandController>();
     star = GameObject.Find("/players/star").GetComponent<StarController>();
 
+    ampersand.Other = star;
+    star.Other = ampersand;
+
     ampersand.gameObject.transform.position = board.positionP;
     star.gameObject.transform.position = board.positionV;
 
     transform.position = new Vector3(board.ColumnCount / 2, (board.RowCount + 1) / 2, transform.position.z);
   }
 
+  public void ToggleCodeScroller(bool b) {
+    codeScroller.SetActive(b);
+  }
+
   public void Log(string message) {
-    Text codeBox = GameObject.Find("canvas/codescroller/viewport/content/text").GetComponent<Text>();
-    codeBox.text += "\n" + message;
-    StartCoroutine(ScrollToBottom());
+    if (codeScroller.activeInHierarchy) {
+      Text codeBox = GameObject.Find("/canvas/codescroller/viewport/content/text").GetComponent<Text>();
+      codeBox.text += "\n" + message;
+      StartCoroutine(ScrollToBottom());
+    }
   }
 
   IEnumerator ScrollToBottom() {
     yield return new WaitForSeconds(0.2f);
-    ScrollRect scroller = GameObject.Find("canvas/codescroller").GetComponent<ScrollRect>();
+    ScrollRect scroller = GameObject.Find("/canvas/codescroller").GetComponent<ScrollRect>();
     scroller.verticalNormalizedPosition = 0.0f;
   }
 

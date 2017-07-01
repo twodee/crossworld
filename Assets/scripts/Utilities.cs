@@ -14,4 +14,6 @@ public class Utilities {
   public static int BLANK_PAUSED_MASK = 1 << BLANK_PAUSED_LAYER;
   public static int BLANK_TAIL_LAYER = LayerMask.NameToLayer("blankTail");
   public static int BLANK_TAIL_MASK = 1 << BLANK_TAIL_LAYER;
+  public static int HOLE_LAYER = LayerMask.NameToLayer("hole");
+  public static int HOLE_MASK = 1 << HOLE_LAYER;
 }

@@ -8,7 +8,7 @@ public abstract class PlayerController : MonoBehaviour {
 
   private FootController foot;
   private new Rigidbody2D rigidbody;
-  private GameObject otherPlayer;
+  private PlayerController other;
   private bool isBurden;
   private int otherMask;
   private bool isLocked;
@@ -17,7 +17,6 @@ public abstract class PlayerController : MonoBehaviour {
   virtual public void Start() {
     rigidbody = GetComponent<Rigidbody2D>();
     foot = transform.Find("foot").GetComponent<FootController>();
-    otherPlayer = null;
     isLocked = false;
   }
   
@@ -29,8 +28,10 @@ public abstract class PlayerController : MonoBehaviour {
     oomph = Input.GetAxis("Horizontal" + type);
 
     bool isGrounded = IsGrounded();
-    if (Input.GetButton("Jump" + type) && isGrounded) {
-      rigidbody.mass = 1;
+    if (Input.GetButtonDown("Jump" + type) && isGrounded) {
+      if (other.isBurden) {
+        other.rigidbody.mass = 0;
+      }
       rigidbody.velocity = new Vector2(rigidbody.velocity.x, 6);
     }
 
@@ -41,6 +42,10 @@ public abstract class PlayerController : MonoBehaviour {
   }
 
   IEnumerator TransmitAndUnlock() {
+    bool wasBurden = isBurden;
+    rigidbody.isKinematic = true;
+    other.rigidbody.isKinematic = true;
+
     // Squat
     Vector2 startPosition = gameObject.transform.position;
     Vector2 endPosition = (Vector2) gameObject.transform.position - Vector2.up * 0.1f;
@@ -72,16 +77,19 @@ public abstract class PlayerController : MonoBehaviour {
     gameObject.transform.position = startPosition;
     gameObject.transform.localScale = startScale;
 
-    if (isBurden && IsTransmittable()) {
+    if (wasBurden && IsTransmittable()) {
       yield return StartCoroutine(Transmit());
     }
 
+    rigidbody.isKinematic = false;
+    other.rigidbody.isKinematic = false;
+    isBurden = wasBurden;
     isLocked = false;
   }
 
   void LateUpdate() {
-    if (otherPlayer != null && isBurden) {
-      oomph += otherPlayer.GetComponent<PlayerController>().oomph;
+    if (isBurden) {
+      oomph += other.oomph;
     }
     rigidbody.velocity = new Vector2(oomph * speed, rigidbody.velocity.y);
   }
@@ -90,25 +98,26 @@ public abstract class PlayerController : MonoBehaviour {
   abstract public bool IsTransmittable();
 
   bool IsGrounded() {
-    Collider2D hit = Physics2D.OverlapBox(foot.position, new Vector2(foot.width, foot.height) * 0.5f, 0, Utilities.GROUND_MASK | otherMask);
+    Collider2D hit = Physics2D.OverlapBox(foot.position, new Vector2(foot.width, foot.height) * 0.5f, 0, Utilities.GROUND_MASK | Utilities.HOLE_MASK | otherMask);
     return hit != null;
   }
 
-  void OnCollisionEnter2D(Collision2D collision) {
-    // If we land on top of the other people, let's reduce our mass to 0 so we
-    // don't impede that player's jump.
+  void CheckBurden(Collision2D collision) {
     if ((1 << collision.gameObject.layer) == otherMask) {
-      otherPlayer = collision.gameObject;
-      isBurden = transform.position.y > collision.gameObject.transform.position.y + 0.2;
-      if (isBurden) {
-        rigidbody.mass = 0;
-      }
+      isBurden = transform.position.y > collision.gameObject.transform.position.y + 0.01;
     }
   }
 
+  void OnCollisionEnter2D(Collision2D collision) {
+    CheckBurden(collision);
+  }
+  
+  void OnCollisionStay2D(Collision2D collision) {
+    CheckBurden(collision);
+  }
+
   void OnCollisionExit2D(Collision2D collision) {
-    if (collision.gameObject == otherPlayer) {
-      otherPlayer = null;
+    if (collision.gameObject == other.gameObject) {
       rigidbody.mass = 1;
       isBurden = false;
     }
@@ -133,6 +142,15 @@ public abstract class PlayerController : MonoBehaviour {
       } else {
         otherMask = Utilities.PLAYER_D_MASK;
       }
+    }
+  }
+
+  public PlayerController Other {
+    get {
+      return other;
+    }
+    set {
+      other = value;
     }
   }
 }

@@ -24,17 +24,18 @@ public class AmpersandController : PlayerController {
     targetCell = null;
     caster = null;
   }
+
+  public void OnClick() {
+    if (caster != null) {
+      StopCoroutine(caster);
+    }
+    caster = StartCoroutine(CastPointerToMouse()); 
+  }
   
   override public void Update() {
     base.Update();
 
-    // Emit feeler pointer on left-click.
-    if (Input.GetMouseButtonDown(0)) {
-      if (caster != null) {
-        StopCoroutine(caster);
-      }
-      caster = StartCoroutine(CastPointerToMouse()); 
-    } else if (Input.GetKeyDown(KeyCode.Equals) && Input.GetKey(KeyCode.LeftShift)) {
+    if (Input.GetKeyDown(KeyCode.Equals) && Input.GetKey(KeyCode.LeftShift)) {
       caster = StartCoroutine(CastPointer(targetPosition, targetPosition - new Vector2(0, 1 + GameController.GAP), targetCell.gameObject));
       GameController.SINGLETON.Log("p += 3;");
     } else if (Input.GetKeyDown(KeyCode.Equals)) {
@@ -112,7 +113,6 @@ public class AmpersandController : PlayerController {
     float startTime = Time.time;
     float elapsedTime = 0.0f;
     float targetTime = 0.5f;
-    CellController oldTargetCell = targetCell;
     targetCell = null;
     Vector2 rayStart = transform.position;
 
@@ -137,7 +137,7 @@ public class AmpersandController : PlayerController {
       if (skipObject != null) {
         mask |= Utilities.BLANK_TAIL_MASK;
       }
-      Collider2D collider = Physics2D.OverlapPoint(to, Utilities.BLANK_HEAD_MASK | Utilities.BLANK_TAIL_MASK);
+      Collider2D collider = Physics2D.OverlapPoint(to, mask);
 
       if (collider != null) {
         PointAt(to); 
@@ -174,25 +174,33 @@ public class AmpersandController : PlayerController {
   }
 
   override public IEnumerator Transmit() {
+    yield return StartCoroutine(star.Release());
+
     GameObject cell = targetCell.gameObject.transform.Find("canvas/text").gameObject;
     GameObject payload = Instantiate(cell);
-    payload.GetComponent<Text>().color = new Color(211, 214, 0);
+    Text payloadText = payload.GetComponent<Text>();
     payload.transform.SetParent(targetCell.gameObject.transform.Find("canvas"));
     payload.transform.position = cell.transform.position;
 
     Vector2 startPosition = payload.transform.position;
-    Vector2 endPosition = star.LootPosition; //gameObject.transform.position;
+    Vector2 endPosition = star.LootPosition;
+    Color startColor = GameController.SINGLETON.letterInCellColor;
+    Color endColor = GameController.SINGLETON.letterWithValueColor;
 
     float startTime = Time.time;
     float targetTime = 1.0f;
     float elapsedTime = 0.0f;
 
     while (elapsedTime <= targetTime) {
-      payload.transform.position = Vector2.Lerp(startPosition, endPosition, elapsedTime / targetTime);
+      float proportion = elapsedTime / targetTime;
+      payload.transform.position = Vector2.Lerp(startPosition, endPosition, proportion);
+      payloadText.color = Color.Lerp(startColor, endColor, proportion);
       yield return null;
       elapsedTime = Time.time - startTime;
     }
 
+    payload.transform.position = endPosition;
+    payloadText.color = endColor;
     GameController.SINGLETON.Log("value = *p; // value = '" + targetCell.Label + "'");
 
     star.Acquire(targetCell.Label);
