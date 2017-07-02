@@ -57,11 +57,13 @@ public class StarController : PlayerController {
   }
 
   override public IEnumerator Transmit() {
-    GameObject payload = Instantiate(loot.gameObject);
+    GameObject payload = Instantiate(ampersand.Target.gameObject.transform.Find("canvas/text").gameObject);
     Text payloadText = payload.GetComponent<Text>();
     payload.transform.SetParent(ampersand.Target.gameObject.transform.Find("canvas"));
     payload.transform.position = ampersand.gameObject.transform.position;
 
+    payload.GetComponent<Outline>().enabled = true;
+    payloadText.text = loot.text;
     Vector2 startPosition = ampersand.gameObject.transform.position;
     Vector2 endPosition = ampersand.Target.gameObject.transform.position;
     Color startFillColor = GameController.SINGLETON.transmittingFillColor;
@@ -69,6 +71,8 @@ public class StarController : PlayerController {
     Color startStrokeColor = GameController.SINGLETON.transmittingStrokeColor;
     Color endStrokeColor = startStrokeColor;
     endStrokeColor.a = 0;
+    Vector3 startScale = loot.gameObject.GetComponent<RectTransform>().localScale;
+    Vector3 endScale = ampersand.Target.gameObject.transform.Find("canvas/text").gameObject.GetComponent<RectTransform>().localScale;
 
     float startTime = Time.time;
     float targetTime = 1.0f;
@@ -81,6 +85,7 @@ public class StarController : PlayerController {
       payload.transform.position = Vector2.Lerp(startPosition, endPosition, proportion);
       payloadText.color = Color.Lerp(startFillColor, endFillColor, proportion);
       payload.GetComponent<Outline>().effectColor = Color.Lerp(startStrokeColor, endStrokeColor, proportion);
+      payload.GetComponent<RectTransform>().localScale = Vector3.Lerp(startScale, endScale, proportion);
       yield return null;
       elapsedTime = Time.time - startTime;
     }
@@ -91,6 +96,14 @@ public class StarController : PlayerController {
 
     Destroy(payload);
     ampersand.Target.Label = loot.text;
+
+    GameController.SINGLETON.CheckForWin();
+  }
+
+  public Text Loot {
+    get {
+      return loot;
+    }
   }
 
   public Vector2 LootPosition {

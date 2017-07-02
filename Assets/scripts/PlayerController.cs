@@ -26,8 +26,6 @@ public abstract class PlayerController : MonoBehaviour {
     }
 
     oomph = Input.GetAxis("Horizontal" + type);
-    if (gameObject.name == "ampersand") {
-    }
 
     bool isGrounded = IsGrounded();
     if (Input.GetButtonDown("Jump" + type) && isGrounded) {
@@ -52,7 +50,7 @@ public abstract class PlayerController : MonoBehaviour {
     Vector2 startPosition = gameObject.transform.position;
     Vector2 endPosition = (Vector2) gameObject.transform.position - Vector2.up * 0.1f;
     Vector3 startScale = gameObject.transform.localScale;
-    Vector3 endScale = new Vector3(1.2f, 0.8f, 1.0f);
+    Vector3 endScale = new Vector3(1.2f * Mathf.Sign(startScale.x), 0.8f, 1.0f);
 
     float startTime = Time.time;
     float targetTime = 0.1f;
@@ -93,6 +91,17 @@ public abstract class PlayerController : MonoBehaviour {
         oomph += other.oomph;
       }
       rigidbody.velocity = new Vector2(oomph * speed, rigidbody.velocity.y);
+      if ((rigidbody.velocity.x < 0 && transform.localScale.x > 0) ||
+          (rigidbody.velocity.x > 0 && transform.localScale.x < 0)) {
+        transform.localScale = new Vector2(-transform.localScale.x, transform.localScale.y);
+      }
+
+      Transform sprite = transform.Find("sprite"); 
+      if (sprite != null) {
+        Animator animator = sprite.gameObject.GetComponent<Animator>(); 
+        animator.SetBool("moving", Mathf.Abs(rigidbody.velocity.x) > 0.1f);
+      }
+
       oomph = 0.0f;
     }
   }

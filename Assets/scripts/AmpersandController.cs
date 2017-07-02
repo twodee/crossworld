@@ -143,7 +143,10 @@ public class AmpersandController : PlayerController {
         PointAt(to); 
         targetCell = collider.gameObject.GetComponent<CellController>();
         targetPosition = to;
-        if (collider.gameObject.layer == Utilities.BLANK_HEAD_LAYER) {
+
+        // Log our anchoring to a head element, but only if we arrived here by
+        // a direct hit instead of pointer arithmetic.
+        if (collider.gameObject.layer == Utilities.BLANK_HEAD_LAYER && skipObject == null) {
           GameController.SINGLETON.Log("p = &word[" + targetCell.Address + "];");
         }
       }
@@ -188,6 +191,8 @@ public class AmpersandController : PlayerController {
     Color endFillColor = GameController.SINGLETON.transmittingFillColor;
     Color startStrokeColor = GameController.SINGLETON.letterInCellColor;
     Color endStrokeColor = GameController.SINGLETON.transmittingStrokeColor;
+    Vector3 startScale = payload.GetComponent<RectTransform>().localScale;
+    Vector3 endScale = GameController.SINGLETON.star.Loot.gameObject.GetComponent<RectTransform>().localScale;
 
     float startTime = Time.time;
     float targetTime = 1.0f;
@@ -203,6 +208,7 @@ public class AmpersandController : PlayerController {
       payload.transform.position = Vector2.Lerp(startPosition, endPosition, proportion);
       payloadText.color = Color.Lerp(startFillColor, endFillColor, proportion);
       outline.effectColor = Color.Lerp(startStrokeColor, endStrokeColor, proportion);
+      payload.GetComponent<RectTransform>().localScale = Vector3.Lerp(startScale, endScale, proportion);
       yield return null;
       elapsedTime = Time.time - startTime;
     }

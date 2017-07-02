@@ -22,8 +22,8 @@ public class GameController : MonoBehaviour {
 
   private Coroutine fader;
   private Text codeBox;
-  /* private GameObject codeScroller; */
   private int nPlayersThrough;
+  private Board board;
   public CellController[,] cells;
 
   void Start() {
@@ -32,9 +32,8 @@ public class GameController : MonoBehaviour {
     SINGLETON = this;
 
     Transform boardParent = GameObject.Find("/board").transform;
-    /* codeScroller = GameObject.Find("/canvas/codescroller"); */
 
-    Board board = JsonUtility.FromJson<Board>(boardFile.text);
+    board = JsonUtility.FromJson<Board>(boardFile.text);
     List<string> horizontalClues = new List<string>();
     List<string> verticalClues = new List<string>();
 
@@ -137,10 +136,6 @@ public class GameController : MonoBehaviour {
     transform.position = new Vector3(board.ColumnCount / 2, (board.RowCount + 1) / 2, transform.position.z);
   }
 
-  /* public void ToggleCodeScroller(bool b) { */
-    /* codeScroller.SetActive(b); */
-  /* } */
-
   public void Log(string message) {
     if (fader != null) {
       StopCoroutine(fader);
@@ -173,6 +168,23 @@ public class GameController : MonoBehaviour {
       elapsedTime = Time.time - startTime;
     }
     codeBox.color = new Color(0, 1, 0, 0);
+  }
+
+  public void CheckForWin() {
+
+  }
+
+  public bool IsWin() {
+    for (int r = 0; r < board.RowCount; ++r) {
+      for (int c = 0; c < board.ColumnCount; ++c) {
+        if (cells[c, r] != null) {
+          if (cells[c, r].Label != "" + Char.ToUpper(board[c, r])) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 
   /* IEnumerator ScrollToBottom() { */
