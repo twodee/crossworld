@@ -43,14 +43,24 @@ public class AmpersandController : PlayerController {
     int iCurrent = targetCell.Row * width + targetCell.Column;
     int oldR = targetCell.Row;
     int oldC = targetCell.Column;
+    Debug.Log("delta: " + delta);
+    Debug.Log("oldR: " + oldR);
+    Debug.Log("oldC: " + oldC);
+    Vector2 from = targetPosition;
 
-    while (delta != 0) {
+    while (delta > 0) {
       iCurrent += sign;
       int r = iCurrent / width;
       int c = iCurrent % width;
+      Debug.Log("r: " + r);
+      Debug.Log("c: " + c);
       float deltaX = (c - oldC) * (1 + GameController.GAP);
       float deltaY = (r - oldR) * (1 + GameController.GAP);
-      caster = StartCoroutine(CastPointer(targetPosition, targetPosition + new Vector2(deltaX, deltaY), targetCell.gameObject));
+      Vector2 to = from + new Vector2(deltaX, deltaY);
+      caster = StartCoroutine(CastPointer(from, to, targetCell.gameObject));
+      from = to;
+      oldC = c;
+      oldR = r;
       yield return caster;
       --delta;
     } 
@@ -70,11 +80,11 @@ public class AmpersandController : PlayerController {
 
     if (!inputter.IsFocused) {
       if (Input.GetKeyDown(KeyCode.Equals) && Input.GetKey(KeyCode.LeftShift)) {
-        Increment(1, "p += " + GameController.SINGLETON.getBoard().ColumnCount);
+        Increment(GameController.SINGLETON.getBoard().ColumnCount, "p += " + GameController.SINGLETON.getBoard().ColumnCount);
       } else if (Input.GetKeyDown(KeyCode.Equals)) {
         Increment(1, "p++");
       } else if (Input.GetKeyDown(KeyCode.Minus) && Input.GetKey(KeyCode.LeftShift)) {
-        Increment(1, "p -= " + GameController.SINGLETON.getBoard().ColumnCount);
+        Increment(GameController.SINGLETON.getBoard().ColumnCount, "p -= " + GameController.SINGLETON.getBoard().ColumnCount);
       } else if (Input.GetKeyDown(KeyCode.Minus)) {
         Increment(1, "p--");
       }
