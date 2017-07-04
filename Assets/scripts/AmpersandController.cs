@@ -29,24 +29,55 @@ public class AmpersandController : PlayerController {
     if (caster != null) {
       StopCoroutine(caster);
     }
-    caster = StartCoroutine(CastPointerToMouse()); 
+
+    Vector2 from = transform.position;
+    Vector3 mousePixels = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10);
+    Vector2 to = Camera.main.ScreenToWorldPoint(mousePixels);
+    caster = StartCoroutine(CastPointer(from, to));
+  }
+
+  IEnumerator StepPointer(int delta) {
+    int sign = delta > 0 ? 1 : -1;
+    delta = delta > 0 ? delta : -delta;
+    int width = GameController.SINGLETON.getBoard().ColumnCount;
+    int iCurrent = targetCell.Row * width + targetCell.Column;
+    int oldR = targetCell.Row;
+    int oldC = targetCell.Column;
+
+    while (delta != 0) {
+      iCurrent += sign;
+      int r = iCurrent / width;
+      int c = iCurrent % width;
+      float deltaX = (c - oldC) * (1 + GameController.GAP);
+      float deltaY = (r - oldR) * (1 + GameController.GAP);
+      caster = StartCoroutine(CastPointer(targetPosition, targetPosition + new Vector2(deltaX, deltaY), targetCell.gameObject));
+      yield return caster;
+      --delta;
+    } 
+  }
+
+  public void Increment(int delta, string originalCommand) {
+    if (targetCell != null) {
+      GameController.SINGLETON.Log(originalCommand); 
+      StartCoroutine(StepPointer(delta));
+    } else {
+      GameController.SINGLETON.Log("illegal: " + originalCommand); 
+    }
   }
   
   override public void Update() {
     base.Update();
 
-    if (Input.GetKeyDown(KeyCode.Equals) && Input.GetKey(KeyCode.LeftShift)) {
-      caster = StartCoroutine(CastPointer(targetPosition, targetPosition - new Vector2(0, 1 + GameController.GAP), targetCell.gameObject));
-      GameController.SINGLETON.Log("p += 3;");
-    } else if (Input.GetKeyDown(KeyCode.Equals)) {
-      caster = StartCoroutine(CastPointer(targetPosition, targetPosition + new Vector2(1 + GameController.GAP, 0), targetCell.gameObject));
-      GameController.SINGLETON.Log("++p;");
-    } else if (Input.GetKeyDown(KeyCode.Minus) && Input.GetKey(KeyCode.LeftShift)) {
-      caster = StartCoroutine(CastPointer(targetPosition, targetPosition + new Vector2(0, 1 + GameController.GAP), targetCell.gameObject));
-      GameController.SINGLETON.Log("p -= 3;");
-    } else if (Input.GetKeyDown(KeyCode.Minus)) {
-      caster = StartCoroutine(CastPointer(targetPosition, targetPosition - new Vector2(1 + GameController.GAP, 0), targetCell.gameObject));
-      GameController.SINGLETON.Log("--p;");
+    if (!inputter.IsFocused) {
+      if (Input.GetKeyDown(KeyCode.Equals) && Input.GetKey(KeyCode.LeftShift)) {
+        Increment(1, "p += " + GameController.SINGLETON.getBoard().ColumnCount);
+      } else if (Input.GetKeyDown(KeyCode.Equals)) {
+        Increment(1, "p++");
+      } else if (Input.GetKeyDown(KeyCode.Minus) && Input.GetKey(KeyCode.LeftShift)) {
+        Increment(1, "p -= " + GameController.SINGLETON.getBoard().ColumnCount);
+      } else if (Input.GetKeyDown(KeyCode.Minus)) {
+        Increment(1, "p--");
+      }
     }
 
     // Cancel pointer on right-click.
@@ -74,7 +105,23 @@ public class AmpersandController : PlayerController {
     }
   }
 
-  void Depoint() {
+  public void TargetWord(int i) {
+    if (caster != null) {
+      StopCoroutine(caster);
+    }
+
+    Clue clue = GameController.SINGLETON.getBoard().getClue(i);
+    if (clue != null) {
+      Vector2 from = transform.position;
+      Vector2 to = new Vector2(clue.x * (1 + GameController.GAP), 1 + clue.y * (1 + GameController.GAP));
+      Debug.Log("clue.x: " + clue.x);
+      Debug.Log("clue.y: " + clue.y);
+      Debug.Log("to: " + to);
+      caster = StartCoroutine(CastPointer(from, to));
+    }
+  }
+
+  public void Depoint() {
     lineRenderer.enabled = false;
     leftBarbRenderer.enabled = false;
     rightBarbRenderer.enabled = false;
@@ -92,13 +139,6 @@ public class AmpersandController : PlayerController {
     lineRenderer.SetPosition(1, position); 
     leftBarbRenderer.SetPosition(1, position); 
     rightBarbRenderer.SetPosition(1, position); 
-  }
-
-  IEnumerator CastPointerToMouse() {
-    Vector2 from = transform.position;
-    Vector3 mousePixels = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10);
-    Vector2 to = Camera.main.ScreenToWorldPoint(mousePixels);
-    yield return StartCoroutine(CastPointer(from, to));
   }
 
   IEnumerator CastPointer(Vector2 from, Vector2 to, GameObject skipObject = null) {

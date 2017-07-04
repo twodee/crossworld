@@ -9,6 +9,15 @@ public class Board {
   public string[] cells;
   public Clue[] clues;
 
+  public Clue getClue(int i) {
+    foreach (Clue clue in clues) {
+      if (clue.serial == i) {
+        return clue;
+      }
+    }
+    return null;
+  }
+
   public Clue getClue(int x, int y, bool isVertical) {
     foreach (Clue clue in clues) {
       if (clue.x == x && clue.y == y && clue.IsVertical == isVertical) {

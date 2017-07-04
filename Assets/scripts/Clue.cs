@@ -8,6 +8,7 @@ public class Clue {
   public int y;
   public string orientation; 
   public string text;
+  public int serial;
 
   public bool IsVertical {
     get {

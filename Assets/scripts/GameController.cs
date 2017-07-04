@@ -5,21 +5,24 @@ using UnityEngine.UI;
 using System;
 
 public class GameController : MonoBehaviour {
-  public TextAsset boardFile;
+  public List<TextAsset> boardFiles;
   public GameObject letter;
   public GameObject hole;
-  public AmpersandController ampersand;
-  public StarController star;
   public Color letterInCellColor;
   public Color letterWithValueColor;
   public Color transmittingStrokeColor;
   public Color transmittingFillColor;
+  public GameObject winDialog;
+  public AmpersandController ampersand;
+  public StarController star;
+  public Transform boardParent;
 
   public static GameController SINGLETON;
 
   public const float GAP = 0.02f;
   private const float DEPTH = 1.0f;
 
+  private int iBoard;
   private Coroutine fader;
   private Text codeBox;
   private int nPlayersThrough;
@@ -31,11 +34,22 @@ public class GameController : MonoBehaviour {
     fader = null;
     SINGLETON = this;
 
-    Transform boardParent = GameObject.Find("/board").transform;
+    ampersand.Other = star;
+    star.Other = ampersand;
 
-    board = JsonUtility.FromJson<Board>(boardFile.text);
+    LoadBoard(0);
+  }
+
+  void LoadBoard(int i) {
+    iBoard = i;
+
+    board = JsonUtility.FromJson<Board>(boardFiles[iBoard].text);
     List<string> horizontalClues = new List<string>();
     List<string> verticalClues = new List<string>();
+
+    foreach (Transform child in boardParent) {
+      Destroy(child.gameObject);
+    }
 
     cells = new CellController[board.ColumnCount, board.RowCount];
 
@@ -74,11 +88,13 @@ public class GameController : MonoBehaviour {
             if (isVerticalStart) {
               Clue clue = board.getClue(c, r, true);
               verticalClues.Add(iClue + ". " + clue.text);
+              clue.serial = iClue;
             }
 
             if (isHorizontalStart) {
               Clue clue = board.getClue(c, r, false);
               horizontalClues.Add(iClue + ". " + clue.text);
+              clue.serial = iClue;
             }
 
             ++iClue;
@@ -124,12 +140,6 @@ public class GameController : MonoBehaviour {
       instance.tag = "topEdge";
     }
 
-    ampersand = GameObject.Find("/players/ampersand").GetComponent<AmpersandController>();
-    star = GameObject.Find("/players/star").GetComponent<StarController>();
-
-    ampersand.Other = star;
-    star.Other = ampersand;
-
     ampersand.gameObject.transform.position = board.positionP;
     star.gameObject.transform.position = board.positionV;
 
@@ -171,7 +181,9 @@ public class GameController : MonoBehaviour {
   }
 
   public void CheckForWin() {
-
+    if (IsWin()) {
+      winDialog.SetActive(true);
+    } 
   }
 
   public bool IsWin() {
@@ -187,11 +199,10 @@ public class GameController : MonoBehaviour {
     return true;
   }
 
-  /* IEnumerator ScrollToBottom() { */
-    /* yield return new WaitForSeconds(0.2f); */
-    /* ScrollRect scroller = GameObject.Find("/canvas/codescroller").GetComponent<ScrollRect>(); */
-    /* scroller.verticalNormalizedPosition = 0.0f; */
-  /* } */
+  public void NextBoard() {
+    LoadBoard((iBoard + 1) % boardFiles.Count);
+    winDialog.SetActive(false);
+  }
 
   public void Through(string declaration) {
     Log(declaration);
@@ -202,5 +213,9 @@ public class GameController : MonoBehaviour {
         top.GetComponent<BoxCollider2D>().isTrigger = false;
       }
     }
+  }
+
+  public Board getBoard() {
+    return board;
   }
 }

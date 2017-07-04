@@ -5,6 +5,7 @@ using UnityEngine;
 public abstract class PlayerController : MonoBehaviour {
   public float speed;
   public string declaration;
+  public CodeInputController inputter;
 
   private FootController foot;
   private new Rigidbody2D rigidbody;
@@ -25,19 +26,21 @@ public abstract class PlayerController : MonoBehaviour {
       return;
     }
 
-    oomph = Input.GetAxis("Horizontal" + type);
+    if (!inputter.IsFocused) {
+      oomph = Input.GetAxis("Horizontal" + type);
 
-    bool isGrounded = IsGrounded();
-    if (Input.GetButtonDown("Jump" + type) && isGrounded) {
-      if (other.isBurden) {
-        other.rigidbody.mass = 0;
+      bool isGrounded = IsGrounded();
+      if (Input.GetButtonDown("Jump" + type) && isGrounded) {
+        if (other.isBurden) {
+          other.rigidbody.mass = 0;
+        }
+        rigidbody.velocity = new Vector2(rigidbody.velocity.x, 6);
       }
-      rigidbody.velocity = new Vector2(rigidbody.velocity.x, 6);
-    }
 
-    if (isGrounded && Input.GetButtonDown("Transmit" + type)) {
-      isLocked = true;
-      StartCoroutine(TransmitAndUnlock());
+      if (isGrounded && Input.GetButtonDown("Transmit" + type)) {
+        isLocked = true;
+        StartCoroutine(TransmitAndUnlock());
+      }
     }
   }
 
@@ -83,6 +86,14 @@ public abstract class PlayerController : MonoBehaviour {
 
     isBurden = wasBurden;
     isLocked = false;
+  }
+
+  public void Assign(string command) {
+    if (IsTransmittable()) {
+      StartCoroutine(Transmit());
+    } else {
+      GameController.SINGLETON.Log("illegal: " + command);  
+    }
   }
 
   void LateUpdate() {
