@@ -4,12 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Text.RegularExpressions;
 
-public class CodeInputController : MonoBehaviour {
-  public AmpersandController ampersand;
-  public StarController star;
-
-  private InputField input;
-
+public class SourceBoxController : MonoBehaviour {
   private readonly Regex UNARY_INCREMENT = new Regex(@"^\s*(p\s*\+\+|\+\+\s*p)\s*;?\s*$");
   private readonly Regex UNARY_DECREMENT = new Regex(@"^\s*(--\s*p|p\s*--)\s*;?\s*$");
   private readonly Regex BINARY_INCREMENT = new Regex(@"^\s*p\s*\+=\s*(-?\d+)\s*;?\s*$");
@@ -19,11 +14,17 @@ public class CodeInputController : MonoBehaviour {
   private readonly Regex POINT = new Regex(@"^\s*p\s*=\s*&word\[(\d+)\]\s*;?\s*$");
   private readonly Regex NULLIFY = new Regex(@"^\s*p\s*=\s*NULL\s*;?\s*$");
 
+  public AmpersandController ampersand;
+  public StarController star;
+
+  private InputField input;
+
   void Start() {
     input = GetComponent<InputField>(); 
     input.onEndEdit.AddListener(OnInput);
   }
 
+  // Handle arbitrary command.
   void OnInput(string command) {
     bool isValid = true;
 
@@ -38,7 +39,6 @@ public class CodeInputController : MonoBehaviour {
     } else if (POINT.IsMatch(command)) {
       Match match = POINT.Match(command);
       int index = int.Parse(match.Groups[1].Value);
-      Debug.Log("index: " + index);
       ampersand.TargetWord(index);
     } else if (BINARY_INCREMENT.IsMatch(command)) {
       Match match = BINARY_INCREMENT.Match(command);
@@ -62,15 +62,22 @@ public class CodeInputController : MonoBehaviour {
       input.text = "";
     }
 
-    // Unity triggers this event on two occasions: hitting enter and losing focus.
-    // If they hit enter, we expect the user to want to type in more -- like in a
-    // REPL. We must actively retain focus in such a case, but not in the losing
-    // focus case. That'd be bad.
+    // Unity triggers this event on two occasions: hitting enter and losing
+    // focus. If they hit enter, we expect the user to want to type in some
+    // next command -- like in a REPL. We must actively restore focus in such a
+    // case.
     if (Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Return)) {
       input.ActivateInputField();
     }
   }
 
+  // Determines if the input box is focused. If your scripts are listening for
+  // key events, you probably don't want to receive them when the player is
+  // typing in the box. In those scripts, use this property to assert that the
+  // box isn't focused:
+  //
+  //   if (!inputController.IsFocused && Input.GetKeyDown(KeyCode.A))
+  //     ...
   public bool IsFocused {
     get {
       return input.isFocused;
